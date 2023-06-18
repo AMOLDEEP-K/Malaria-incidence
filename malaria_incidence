@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#check if exactly one argument
+if [[ $# -eq 0 ]] || [[ $# -gt 1 ]]
+then
+    echo "Usage:malaria_incidence <year or country name>" > /dev/stderr
+    exit 1
+fi
+
+#remove bracketed words in input
+if [[ $(set -- "$1" "$(sed -e 's/([^()]*)//g' <<< $1)") != $1 ]]
+then
+    set -- "$(sed -e 's/([^()]*)//g' <<< $1)"
+    
+fi
+
+#adjustment for Vietnam
+if [[ $1 == "Vietnam" ]] || [[ $1 == "vietnam" ]]
+  then set -- 'Viet Nam'
+fi
+
+#process for when argument is year
+if [[ "$1" =~ [0-9][0-9]* ]] && [[ $1 -ge 2000 ]] && [[ $1 -le 2018 ]] 
+then
+   result=$(grep -w "$1" incedenceOfMalaria.csv | cut -d , -f 1,4 | sort -k 2 -t , -n | tail -n 1)
+   country=$(echo $result | cut -d , -f 1)
+   highest=$(echo $result | cut -d , -f 2)
+    echo For the year $1, the country with the highest incidence was $country, with a rate of $highest per 1,000
+
+#process for when argument is country name
+elif [[ "$1" =~ [a-zA-Z][a-zA-Z]* ]] &&  grep -w -i -q "$(python3 title_case.py "$1")" incedenceOfMalaria.csv 
+then
+    
+    a=$(python3 title_case.py "$1")
+    result=$(grep -w -i "$a" incedenceOfMalaria.csv | cut -d , -f 3,4 | sort -k 2 -t , -n | tail -n 1)
+    year=$(echo $result | cut -d , -f 1)
+    highest=$(echo $result | cut -d , -f 2)
+    
+    echo For the  country $a, the year with the highest incidence was $year, with a rate of $highest per 1,000
+else
+    
+    echo "Input is not a valid year or country" > /dev/stderr
+    echo "Usage:malaria_incidence <year or country name>" > /dev/stderr
+    exit 1
+    
+fi
